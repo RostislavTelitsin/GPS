@@ -39,8 +39,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
+
 
 import java.io.IOException;
 import java.util.List;
@@ -55,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private Button button_reset;//Button Stop to stop workout
     private LocationManager locationManager;//GPS
     private TextView distanceText;//distance monitor
+    private TextView accuracyText;//accuracy monitor
     private LocationListener locationListener;//GPS listener
     public Chronometer chronometer;//timer
     private boolean isRunning = false;//is workout running
@@ -66,14 +66,15 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
     private final Handler mainHandler = new Handler();
     private final Handler mainHandler2 = new Handler();
     private double distance = 0;
-    private final Coordinates currentCoordinates = new Coordinates(0,  0,  0);
+    private Coordinates currentCoordinates = new Coordinates(0,  0,  0);
     private Coordinates prevCoordinates = new Coordinates(0,  0,  0);
     private long backPressedTime;
+    private final double LOCATION_ACCURACY = 3.5;
+    private final double MIN_DISTANCE_INCREMENT = 0.005;
 
 
 
-
-    // For sensor
+// For sensor
     public TextView sensorMonitor;//sensor monitor
     public TextView heartRateMonitor;//sensor monitor
 
@@ -117,8 +118,6 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         ExtTreadSensor extTreadSensor = new ExtTreadSensor();
         new Thread(extTreadSensor).start();
 
-
-
 //For sensor FINISH
 
 
@@ -133,6 +132,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         TextView t_long = (TextView) findViewById(R.id.textLongitude);
         TextView t_alt = (TextView) findViewById(R.id.textAltitude);
         distanceText = (TextView) findViewById(R.id.textViewDistance);
+        accuracyText = (TextView) findViewById(R.id.textViewAccuracy);
 
         progressBar = (ProgressBar) findViewById(R.id.progressBar);
         button_reset.setOnTouchListener(this);
@@ -153,29 +153,59 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
         if (isLocationEnabled(getBaseContext())) {
+
             locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
             locationListener = new LocationListener() {
                 @SuppressLint(value = "SetTextI18n")
                 @Override
                 public void onLocationChanged(@NonNull Location location) {
-                    t_alt.setText(Double.toString(location.getAltitude()));
-                    t_lat.setText(Double.toString(location.getLatitude()));
-                    t_long.setText(Double.toString(location.getLongitude()));
+
+                    if (location.getAccuracy()<LOCATION_ACCURACY){
+                        currentCoordinates.setAll(location.getLatitude(), location.getLongitude(), location.getAltitude());
+                        t_alt.setText(Double.toString(currentCoordinates.getAltitude()));
+                        t_lat.setText(Double.toString(currentCoordinates.getLatitude()));
+                        t_long.setText(Double.toString(currentCoordinates.getLongitude()));
+                    }
+
+
+
+
+                    accuracyText.setText(String.valueOf(location.getAccuracy()));
                     if (isRunning) {
+
+                        sensorMonitor.append(prevCoordinates.getLatitude() +"\n");
+                        sensorMonitor.append(prevCoordinates.getLongitude() +"\n");
+
                         if (prevCoordinates.latitude==0 && prevCoordinates.longitude==0){
-                            prevCoordinates = currentCoordinates;
+                            prevCoordinates.setAll(currentCoordinates.getLatitude(), currentCoordinates.getLongitude(), currentCoordinates.getAltitude());
                             currentCoordinates.setAll(location.getLatitude(), location.getLongitude(), location.getAltitude());
+                            sensorMonitor.append("Метка 2\n");
+                        } else if(!prevCoordinates.equals(currentCoordinates) && location.getAccuracy()<LOCATION_ACCURACY){
 
-                        } else {
-                            prevCoordinates = currentCoordinates;
-                            currentCoordinates.setAll(location.getLatitude(), location.getLongitude(), location.getAltitude());
 
-                            distance = distance + distanceCalc(prevCoordinates, currentCoordinates);
-                            distanceText.setText(String.format("%.4f", distance). toString() + "км");
+                            sensorMonitor.append("попытка\n");
+
+                            sensorMonitor.append(prevCoordinates.getLatitude() +"\n");
+                            sensorMonitor.append(prevCoordinates.getLongitude() +"\n");
+                            sensorMonitor.append(currentCoordinates.getLatitude() +"\n");
+                            sensorMonitor.append(currentCoordinates.getLongitude() +"\n");
+
+                            double d = distanceCalc(prevCoordinates, currentCoordinates);
+                            sensorMonitor.append(d + " _результат\n");
+
+                            if (d>=MIN_DISTANCE_INCREMENT){
+                                distance = distance + d;
+                                distanceText.setText(String.format("%.4f", distance). toString() + "км");
+
+                                prevCoordinates.setAll(currentCoordinates.getLatitude(), currentCoordinates.getLongitude(), currentCoordinates.getAltitude());
+                            }
+
+                            //currentCoordinates.setAll(location.getLatitude(), location.getLongitude(), location.getAltitude());
                         }
                     }else {
-                        prevCoordinates = currentCoordinates;
+                        //prevCoordinates = currentCoordinates;
                         currentCoordinates.setAll(location.getLatitude(), location.getLongitude(), location.getAltitude());
+                        sensorMonitor.append("Метка 3\n");
                     }
                 }
 
@@ -579,9 +609,18 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                         while (isCheckHeartBeat) {
                             boolean weGotIt = false;
                             try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            try {
                                 hearbitRate = myChar.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 1);
                                 weGotIt = true;
-                            } finally {}
+                            } catch (NullPointerException e) {
+
+                            }
+
+                            finally {}
                             if (hearbitRate ==0) {
                                 mainHandler.post(new Runnable() {
                                     @Override

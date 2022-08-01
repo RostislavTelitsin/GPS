@@ -22,6 +22,8 @@ public class Coordinates {
         return longitude;
     }
 
+
+
     public void setLongitude(double longitude) {
         this.longitude = longitude;
     }

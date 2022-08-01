@@ -135,6 +135,19 @@
         app:layout_constraintTop_toBottomOf="@+id/chronometerMonitor" />
 
     <TextView
+        android:id="@+id/textViewAccuracy"
+        android:layout_width="189dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="144dp"
+        android:gravity="bottom"
+        android:hint="0.0"
+        android:textColor="#D30808"
+        android:textColorHint="#D30808"
+        android:textSize="36sp"
+        app:layout_constraintStart_toStartOf="@+id/guideline2"
+        app:layout_constraintTop_toBottomOf="@+id/chronometerMonitor" />
+
+    <TextView
         android:id="@+id/textViewHeartRate"
         android:layout_width="94dp"
         android:layout_height="50dp"
@@ -156,9 +169,23 @@
         android:layout_height="33dp"
         android:background="@android:color/transparent"
         android:ems="10"
-        android:gravity="top"
+        android:gravity="bottom"
         android:inputType="textPersonName"
         android:text="Distance"
+        app:layout_constraintStart_toStartOf="@+id/guideline2"
+        app:layout_constraintTop_toBottomOf="@+id/textViewDistance" />
+
+    <TextView
+        android:id="@+id/editTextTextPersonName4"
+        android:layout_width="147dp"
+        android:layout_height="33dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="128dp"
+        android:background="@android:color/transparent"
+        android:ems="10"
+        android:gravity="bottom"
+        android:inputType="textPersonName"
+        android:text="Accuracy"
         app:layout_constraintStart_toStartOf="@+id/guideline2"
         app:layout_constraintTop_toBottomOf="@+id/textViewDistance" />
 
@@ -188,10 +215,11 @@
 
     <TextView
         android:id="@+id/textSensorMonitor"
-        android:layout_width="206dp"
-        android:layout_height="403dp"
+        android:layout_width="203dp"
+        android:layout_height="183dp"
         android:ems="10"
-        android:gravity="start|top"
+        android:freezesText="false"
+        android:gravity="bottom|center"
         android:inputType="textMultiLine"
         android:textSize="8sp"
         app:layout_constraintEnd_toEndOf="parent"
