@@ -2,6 +2,7 @@ package tel.rostel.gps;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -28,6 +29,7 @@ import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -39,7 +41,8 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import java.io.IOException;
 import java.util.List;
@@ -144,14 +147,18 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                crono();
+                Context context = getApplicationContext();
+                Intent intent = new Intent(v.getContext(), GpsService.class); // Build the intent for the service
+
+                crono(v, intent);
+
+
+
             }
         });
 //Stop chronometer description
 
 //obtaining of location
-
-
         if (isLocationEnabled(getBaseContext())) {
 
             locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
@@ -280,12 +287,12 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
                     socket.connect();
 
 
-                    Toast tt = Toast.makeText(getApplicationContext(), "ЗАЕБИСЬ коннект", Toast.LENGTH_LONG);
+                    Toast tt = Toast.makeText(getApplicationContext(), "коннект ок", Toast.LENGTH_LONG);
                     tt.show();
 
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
-                    Toast tt = Toast.makeText(getApplicationContext(), "Хер коннект", Toast.LENGTH_LONG);
+                    Toast tt = Toast.makeText(getApplicationContext(), "Нет соединения", Toast.LENGTH_LONG);
                     tt.show();
                 }
             }
@@ -311,7 +318,7 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
 
 
 
-    public void crono() {
+    public void crono(View v, Intent intent) {
         if (isRunning==false) {
             button.setBackgroundColor(Color.RED);
             button.setText("Pause");
@@ -319,6 +326,11 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             chronometer.setBase(SystemClock.elapsedRealtime() - pauseOffset);
             chronometer.start();
             isRunning = true;
+            intent.putExtra("isRunning", isRunning);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !isGpsServiceRunning()) {
+                startForegroundService(intent);
+                Log.e("MyService","Путь 1");
+            }
 
         }else {
             button.setText("Continue");
@@ -326,10 +338,21 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
             chronometer.stop();
             pauseOffset = SystemClock.elapsedRealtime() - chronometer.getBase();
             isRunning = false;
+            Log.e("MyService isRunning", "Пробуем отправить");
+            Intent intentStopRunning = new Intent("intentStopRunning");
+            intentStopRunning.putExtra("isRunning", isRunning);
+            Log.e("MyService isRunning", "Отправляем");
+            sendBroadcast(intentStopRunning);
+            Log.e("MyService isRunning", "Переходим в G сервис");
+
+            stopService(new Intent(this, GpsService.class));
+
         }
     }
 
-//if button stop is pressed, start new thread for timer to wait for decision if make reset of workout
+
+
+    //if button stop is pressed, start new thread for timer to wait for decision if make reset of workout
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         if(event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -389,6 +412,16 @@ public class MainActivity extends AppCompatActivity implements View.OnTouchListe
         double rez = zemR * 2 * Math.atan2(Math.sqrt(rez_temp), Math.sqrt(1- rez_temp));
         if (rez<0.001) {rez = 0;}
         return rez;
+    }
+
+    public boolean isGpsServiceRunning (){
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for(ActivityManager.RunningServiceInfo service: activityManager.getRunningServices(Integer.MAX_VALUE)) {
+            if(GpsService.class.getName().equals(service.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
